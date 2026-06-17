@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -375,7 +374,18 @@
 
         // Action Handlers
         async function handleCallClick(leadId, bizName, phone, isCallback) {
+            // 1. Copy to clipboard
+            try {
+                await navigator.clipboard.writeText(phone);
+                showToast('Number copied to clipboard! 📋');
+            } catch (err) {
+                console.warn('Clipboard copy failed', err);
+            }
+
+            // 2. Update called_at in the background immediately
             dbClient.from('leads').update({ called_at: new Date().toISOString() }).eq('id', leadId).then();
+            
+            // 3. Give the OS 1 second to open the phone dialer, then show the mandatory popup
             setTimeout(() => {
                 openFeedbackModal(leadId, bizName, phone, isCallback);
             }, 1000);
@@ -387,6 +397,9 @@
             document.getElementById('feedbackLeadBiz').innerText = bizName;
             document.getElementById('feedbackLeadPhone').querySelector('span').innerText = phone;
             document.getElementById('feedbackNotes').value = ''; 
+            
+            // If they opened it from the Callbacks modal, we might want to close the Callbacks modal so it doesn't double stack, 
+            // but z-index handles it fine. Let's just show it.
             document.getElementById('feedbackModal').classList.add('active');
         }
 
@@ -403,10 +416,13 @@
             const card = document.getElementById(cardId);
             if(card) { card.style.opacity = '0.4'; card.style.pointerEvents = 'none'; }
 
+            // Close modal immediately for smooth UI feel
             closeFeedbackModal();
 
             try {
                 let finalNotes = newNotes;
+
+                // If updating an existing callback, append the notes instead of overwriting
                 if (isCallback && newNotes) {
                     const { data } = await dbClient.from('leads').select('notes').eq('id', leadId).single();
                     let existingNotes = data.notes || '';
