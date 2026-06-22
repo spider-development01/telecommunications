@@ -412,9 +412,6 @@
         </div>
     </div>
 
-    <!-- ADDED: The missing toast container element required for showToast() -->
-    <div id="toastContainer"></div>
-
     <script>
         const supabaseUrl = 'https://rmfubnduytozikcgzvok.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtZnVibmR1eXRvemlrY2d6dm9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2OTIyMDgsImV4cCI6MjA5NzI2ODIwOH0.XmxDD8mH8rgq3OZmD7jVophtH2W3NNDgSRJKC3RXvJU';
@@ -432,13 +429,7 @@
         if (window.innerWidth <= 1024) document.getElementById('mobileBrand').style.display = 'block';
 
         function showToast(msg) {
-            let container = document.getElementById('toastContainer');
-            // Fallback safety check in case the HTML element is accidentally deleted later
-            if (!container) {
-                container = document.createElement('div');
-                container.id = 'toastContainer';
-                document.body.appendChild(container);
-            }
+            const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = 'toast';
             toast.innerText = msg;
@@ -649,14 +640,14 @@
                 }
 
                 let leadsToInsert = [];
-                const usPhoneRegex = /(?:\+1|1)?[-.\s]?\(?[2-9]\d{2}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+                const usPhoneRegex = /(?:\+\d{1,4}|1)?[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{4,6}/g;
 
                 if (file) {
                     Papa.parse(file, {
                         header: true, skipEmptyLines: true,
                         complete: async function(results) {
                             leadsToInsert = results.data.map(row => {
-                                let phone = (row.phone_number || row.Phone_Number || row.PhoneNumber || '0000000000').replace(/\D/g, '');
+                                let phone = (row.phone_number || row.Phone_Number || row.PhoneNumber || '0000000000').replace(/[^\d+]/g, '');
                                 return {
                                     business_name: row.business_name || row.Business_Name || row.BusinessName || 'Unknown Entity',
                                     phone_number: phone,
@@ -671,7 +662,7 @@
                     lines.forEach(line => {
                         const match = line.match(usPhoneRegex);
                         if (match) {
-                            let phone = match[0].replace(/\D/g, '');
+                            let phone = match[0].replace(/[^\d+]/g, '');
                             
                             let name = line.replace(match[0], '').replace(/[,;\t]/g, '').trim();
                             if (!name || name.length < 2) name = 'Unknown Entity';
